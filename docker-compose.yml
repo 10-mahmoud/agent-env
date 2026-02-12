@@ -1,0 +1,18 @@
+services:
+  agent-env:
+    build: .
+    container_name: agent-env
+    restart: unless-stopped
+    ports:
+      - "100.95.42.123:2222:22"
+    volumes:
+      - agent-env-home:/home/dev
+      - ${HOME}/.ssh/authorized_keys:/home/dev/.ssh/authorized_keys:ro
+      - ${HOME}/work/agent-workspace:/workspace
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    env_file:
+      - .env
+
+volumes:
+  agent-env-home:
