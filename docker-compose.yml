@@ -5,14 +5,25 @@ services:
     restart: unless-stopped
     ports:
       - "100.95.42.123:2222:22"
+      - "100.95.42.123:8888:8888"
     volumes:
       - agent-env-home:/home/dev
       - ${HOME}/.ssh/authorized_keys:/home/dev/.ssh/authorized_keys:ro
+      - ${HOME}/.ssh/known_hosts:/home/dev/.ssh/known_hosts:ro
       - ${HOME}/work/agent-workspace:/workspace
+      - ${HOME}/work/finfam:/workspace/finfam
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock:ro
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PPROTECT_PASSPHRASE=${PPROTECT_PASSPHRASE}
+      - SSH_AUTH_SOCK=/tmp/ssh-agent.sock
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    group_add:
+      - "997"
 
 volumes:
   agent-env-home:
