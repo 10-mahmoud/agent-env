@@ -1,11 +1,15 @@
 services:
   agent-env:
-    build: .
+    build:
+      context: .
+      args:
+        REBUILD_PI_NATIVES: ${REBUILD_PI_NATIVES:-false}
+        DOCKER_GID: ${DOCKER_GID:-997}
     container_name: agent-env
     restart: unless-stopped
     ports:
-      - "100.95.42.123:2222:22"
-      - "100.95.42.123:8888:8888"
+      - "${BIND_ADDR:-127.0.0.1}:2222:22"
+      - "${BIND_ADDR:-127.0.0.1}:8888:8888"
     volumes:
       - agent-env-home:/home/dev
       - ${HOME}/.ssh/authorized_keys:/home/dev/.ssh/authorized_keys:ro
@@ -15,6 +19,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock:ro
     environment:
+      - AGENT_ENV=1
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PPROTECT_PASSPHRASE=${PPROTECT_PASSPHRASE}
       - SSH_AUTH_SOCK=/tmp/ssh-agent.sock
@@ -23,7 +28,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     group_add:
-      - "997"
+      - "${DOCKER_GID:-997}"
 
 volumes:
   agent-env-home:

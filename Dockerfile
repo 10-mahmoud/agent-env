@@ -55,14 +55,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Bun (install to /usr/local so it's available to all users)
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
-# Rust nightly (needed to build pi_natives from source for this CPU)
-ENV RUSTUP_HOME=/usr/local/rustup \
-    CARGO_HOME=/usr/local/cargo \
-    PATH="/usr/local/cargo/bin:${PATH}"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --default-toolchain nightly --profile minimal \
-    && rustc --version
-
 # Claude Code (via npm, globally available)
 RUN npm install -g @anthropic-ai/claude-code
 
@@ -73,14 +65,29 @@ RUN bun install -g @anthropic-ai/claude-code \
     && chmod o+x /root \
     && ln -sf /root/.bun/bin/omp /usr/local/bin/omp
 
-# Rebuild pi_natives from source for this CPU (prebuilt binary uses AVX2
-# which is not available on Ivy Bridge / Xeon E3-1220 V2)
-RUN git clone --depth 1 https://github.com/can1357/oh-my-pi /tmp/oh-my-pi \
+# Conditionally install Rust nightly and rebuild pi_natives from source.
+# The prebuilt pi_natives binary requires AVX2. Older CPUs (e.g. Ivy Bridge /
+# Xeon E3-1220 V2) lack AVX2 and need a source rebuild. Newer CPUs (Ryzen,
+# Haswell+) can skip this entirely.  Use build.sh to auto-detect, or pass
+# --build-arg REBUILD_PI_NATIVES=true|false explicitly.
+ARG REBUILD_PI_NATIVES=false
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH="/usr/local/cargo/bin:${PATH}"
+RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
+    echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+       | sh -s -- -y --default-toolchain nightly --profile minimal \
+    && rustc --version \
+    && git clone --depth 1 https://github.com/can1357/oh-my-pi /tmp/oh-my-pi \
     && cd /tmp/oh-my-pi/crates/pi-natives \
     && RUSTFLAGS="-C target-cpu=native" cargo build --release \
     && cp /tmp/oh-my-pi/target/release/libpi_natives.so \
        /root/.bun/install/global/node_modules/@oh-my-pi/pi-natives/native/pi_natives.linux-x64.node \
-    && rm -rf /tmp/oh-my-pi /usr/local/cargo/registry /usr/local/cargo/git
+    && rm -rf /tmp/oh-my-pi /usr/local/cargo/registry /usr/local/cargo/git \
+    ; else \
+    echo ">>> Skipping pi_natives rebuild (AVX2 available, prebuilt binary is fine)" \
+    ; fi
 
 # Chromium dependencies for Puppeteer (oh-my-pi browser integration)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -93,8 +100,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
     && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry
 
-# Rename the existing GID-997 group to 'docker' to match host's docker socket GID
-RUN groupmod -n docker $(getent group 997 | cut -d: -f1)
+# Create a 'docker' group matching the host's docker socket GID so the dev
+# user can access /var/run/docker.sock.  Override with --build-arg DOCKER_GID=NNN.
+ARG DOCKER_GID=997
+RUN if getent group "$DOCKER_GID" > /dev/null 2>&1; then \
+    groupmod -n docker "$(getent group "$DOCKER_GID" | cut -d: -f1)"; \
+    else \
+    groupadd -g "$DOCKER_GID" docker; \
+    fi
 
 # Create non-root user with sudo + docker access
 RUN useradd -m -s /bin/bash dev \
