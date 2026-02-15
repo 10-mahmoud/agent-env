@@ -96,9 +96,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr2 libgbm1 libcairo2 libpango-1.0-0 libasound2t64 \
     && rm -rf /var/lib/apt/lists/*
 
-# Poetry 2.1.2 (for ff CLI)
+# Poetry 2.1.2 + shell plugin (for ff CLI)
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
-    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry
+    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
+    && poetry self add poetry-plugin-shell
 
 # Create a 'docker' group matching the host's docker socket GID so the dev
 # user can access /var/run/docker.sock.  Override with --build-arg DOCKER_GID=NNN.
@@ -126,6 +127,10 @@ RUN mkdir -p /home/dev/.ssh && chmod 700 /home/dev/.ssh && chown dev:dev /home/d
 # Create workspace directory
 RUN mkdir -p /workspace && chown dev:dev /workspace
 
+# Mark /workspace as a git safe directory so bind-mounted repos (owned by the
+# host UID) don't trigger git's "dubious ownership" error for the dev user.
+RUN git config --system --add safe.directory '*'
+
 # Entrypoint: set up dev user environment on first boot
 # - Copy .bashrc if missing (named volume may be empty)
 # - Remove /.dockerenv so ff CLI thinks it's on the host and uses docker compose run/exec
@@ -138,7 +143,7 @@ fi\n\
 rm -f /.dockerenv\n\
 exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
 
-EXPOSE 22 8888
+EXPOSE 22 8888 8889 8890
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D"]
