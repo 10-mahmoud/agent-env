@@ -52,8 +52,20 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Chromium dependencies for Puppeteer (oh-my-pi browser integration)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 \
+    libxkbcommon0 libatspi2.0-0t64 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libcairo2 libpango-1.0-0 libasound2t64 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Bun (install to /usr/local so it's available to all users)
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+
+# Poetry 2.1.2 + shell plugin (for ff CLI)
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
+    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
+    && poetry self add poetry-plugin-shell
 
 # Claude Code (native installer — auto-updates, no Node.js runtime needed)
 RUN curl -fsSL https://claude.ai/install.sh | bash \
@@ -88,18 +100,6 @@ RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     ; else \
     echo ">>> Skipping pi_natives rebuild (AVX2 available, prebuilt binary is fine)" \
     ; fi
-
-# Chromium dependencies for Puppeteer (oh-my-pi browser integration)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 \
-    libxkbcommon0 libatspi2.0-0t64 libxcomposite1 libxdamage1 libxfixes3 \
-    libxrandr2 libgbm1 libcairo2 libpango-1.0-0 libasound2t64 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Poetry 2.1.2 + shell plugin (for ff CLI)
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
-    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
-    && poetry self add poetry-plugin-shell
 
 # Create a 'docker' group matching the host's docker socket GID so the dev
 # user can access /var/run/docker.sock.  Override with --build-arg DOCKER_GID=NNN.
