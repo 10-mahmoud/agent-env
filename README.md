@@ -74,7 +74,7 @@ Starts the container (if not running) and execs into it.
 - **Ubuntu 24.04** base
 - **Python 3.11** + Poetry 2.1.2
 - **Node.js 22 LTS** + Bun
-- **Claude Code** (npm) + **oh-my-pi** (bun)
+- **Claude Code** (native installer) + **oh-my-pi** (bun)
 - **Docker CLI + Compose** (talks to host daemon via socket)
 - **Rust nightly** (only installed when pi_natives rebuild is needed)
 - ripgrep, tmux, vim, emacs-nox, git, jq, build-essential

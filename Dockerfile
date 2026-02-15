@@ -55,12 +55,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Bun (install to /usr/local so it's available to all users)
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
-# Claude Code (via npm, globally available)
-RUN npm install -g @anthropic-ai/claude-code
+# Claude Code (native installer — auto-updates, no Node.js runtime needed)
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && ln -sf /root/.local/bin/claude /usr/local/bin/claude
 
 # oh-my-pi (via bun)
-RUN bun install -g @anthropic-ai/claude-code \
-    && bun install -g @oh-my-pi/pi-coding-agent \
+RUN bun install -g @oh-my-pi/pi-coding-agent \
     && chmod -R o+rX /root/.bun \
     && chmod o+x /root \
     && ln -sf /root/.bun/bin/omp /usr/local/bin/omp
