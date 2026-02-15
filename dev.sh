@@ -60,7 +60,7 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
         | sort -u | while read -r key; do
         key="${key/#\~/$HOME}"
         [[ -f "$key" ]] && echo "      - ${key}:${key/#$HOME//home/dev}:ro"
-    done
+    done || true
     # Mount ~/work and ~/projects so git includeIf gitdir:~/work/ etc. resolve correctly
     [[ -d "$HOME/work" ]]     && echo "      - ${HOME}/work:/home/dev/work"
     [[ -d "$HOME/projects" ]] && echo "      - ${HOME}/projects:/home/dev/projects"
