@@ -78,6 +78,7 @@ Starts the container (if not running) and execs into it.
 - **Docker CLI + Compose** (talks to host daemon via socket)
 - **Rust nightly** (only installed when pi_natives rebuild is needed)
 - ripgrep, tmux, vim, emacs-nox, git, jq, build-essential
+- **LSP servers**: typescript-language-server, svelte-language-server, pyright, bash-language-server, vscode-langservers-extracted (HTML/CSS/JSON), yaml-language-server
 
 ## Architecture
 

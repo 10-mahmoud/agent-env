@@ -59,6 +59,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrandr2 libgbm1 libcairo2 libpango-1.0-0 libasound2t64 \
     && rm -rf /var/lib/apt/lists/*
 
+# Language servers (for Claude Code / omp LSP integration)
+RUN npm install -g \
+    typescript \
+    typescript-language-server \
+    svelte-language-server \
+    pyright \
+    bash-language-server \
+    vscode-langservers-extracted \
+    yaml-language-server
+
 # Bun (install to /usr/local so it's available to all users)
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
