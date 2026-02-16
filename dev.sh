@@ -61,9 +61,11 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
         key="${key/#\~/$HOME}"
         [[ -f "$key" ]] && echo "      - ${key}:${key/#$HOME//home/dev}:ro"
     done || true
-    # Mount ~/work and ~/projects so git includeIf gitdir:~/work/ etc. resolve correctly
-    [[ -d "$HOME/work" ]]     && echo "      - ${HOME}/work:/home/dev/work"
-    [[ -d "$HOME/projects" ]] && echo "      - ${HOME}/projects:/home/dev/projects"
+    # Mount ~/work and ~/projects at the HOST path so docker-compose
+    # bind-mount paths (resolved via getcwd) match what the host daemon sees.
+    # The entrypoint symlinks /home/dev/work → $HOST_HOME/work for convenience.
+    [[ -d "$HOME/work" ]]     && echo "      - ${HOME}/work:${HOME}/work"
+    [[ -d "$HOME/projects" ]] && echo "      - ${HOME}/projects:${HOME}/projects"
 } > "$_override"
 
 if $RECREATE; then

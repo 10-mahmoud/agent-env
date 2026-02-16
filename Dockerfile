@@ -144,13 +144,24 @@ RUN git config --system --add safe.directory '*'
 # Entrypoint: set up dev user environment on first boot
 # - Copy .bashrc if missing (named volume may be empty)
 # - Remove /.dockerenv so ff CLI thinks it's on the host and uses docker compose run/exec
+# - Symlink ~/work and ~/projects to host-path mounts so getcwd(2) resolves
+#   to the host path and docker-compose bind-mount paths work on the host daemon
 RUN echo '#!/bin/bash\n\
 if [ ! -f /home/dev/.bashrc ]; then\n\
   cp /etc/skel/.bashrc /home/dev/.bashrc\n\
   chown dev:dev /home/dev/.bashrc\n\
 fi\n\
-# Remove /.dockerenv so ff CLI behaves as if running on the host\n\
 rm -f /.dockerenv\n\
+if [ -n "$HOST_HOME" ] && [ "$HOST_HOME" != "/home/dev" ]; then\n\
+  for dir in work projects; do\n\
+    target="$HOST_HOME/$dir"\n\
+    link="/home/dev/$dir"\n\
+    if [ -d "$target" ]; then\n\
+      [ -d "$link" ] && [ ! -L "$link" ] && rmdir "$link" 2>/dev/null || true\n\
+      [ ! -e "$link" ] && ln -s "$target" "$link" && chown -h dev:dev "$link"\n\
+    fi\n\
+  done\n\
+fi\n\
 exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 22 8888 8889 8890
