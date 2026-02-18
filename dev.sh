@@ -66,6 +66,11 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
     # The entrypoint symlinks /home/dev/work → $HOST_HOME/work for convenience.
     [[ -d "$HOME/work" ]]     && echo "      - ${HOME}/work:${HOME}/work"
     [[ -d "$HOME/projects" ]] && echo "      - ${HOME}/projects:${HOME}/projects"
+    if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        echo "      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock:ro"
+        echo "    environment:"
+        echo "      - SSH_AUTH_SOCK=/tmp/ssh-agent.sock"
+    fi
 } > "$_override"
 
 if $RECREATE; then
