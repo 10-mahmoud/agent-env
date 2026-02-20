@@ -81,8 +81,9 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 -
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && ln -sf /root/.local/bin/claude /usr/local/bin/claude
 
-# oh-my-pi (via bun)
-RUN bun install -g @oh-my-pi/pi-coding-agent \
+# oh-my-pi (via bun) — pass --omp-version to build.sh to pin/update
+ARG OMP_VERSION=latest
+RUN bun install -g @oh-my-pi/pi-coding-agent@${OMP_VERSION} \
     && chmod -R o+rX /root/.bun \
     && chmod o+x /root \
     && ln -sf /root/.bun/bin/omp /usr/local/bin/omp
@@ -111,60 +112,45 @@ RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     echo ">>> Skipping pi_natives rebuild (AVX2 available, prebuilt binary is fine)" \
     ; fi
 
-# Create a 'docker' group matching the host's docker socket GID so the dev
-# user can access /var/run/docker.sock.  Override with --build-arg DOCKER_GID=NNN.
-ARG DOCKER_GID=997
-RUN if getent group "$DOCKER_GID" > /dev/null 2>&1; then \
-    groupmod -n docker "$(getent group "$DOCKER_GID" | cut -d: -f1)"; \
+# Create dev user matching the host UID so bind-mounted files have correct
+# ownership on both sides.  Rootless Docker remaps UIDs (UID 0 inside = host
+# user), so HOST_UID=0 there.  Traditional Docker has no remap, so HOST_UID
+# matches the host user's real UID.
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+RUN if [ "$HOST_UID" = "0" ]; then \
+        useradd -o -u 0 -g 0 -d /home/dev -m -s /bin/bash dev; \
     else \
-    groupadd -g "$DOCKER_GID" docker; \
-    fi
+        existing_user=$(getent passwd "$HOST_UID" | cut -d: -f1); \
+        [ -n "$existing_user" ] && userdel -r "$existing_user" 2>/dev/null || true; \
+        existing_group=$(getent group "$HOST_GID" | cut -d: -f1); \
+        [ -n "$existing_group" ] && groupdel "$existing_group" 2>/dev/null || true; \
+        groupadd -g "$HOST_GID" dev \
+        && useradd -m -s /bin/bash -u "$HOST_UID" -g dev dev; \
+    fi \
+    && echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create non-root user with sudo + docker access
-RUN useradd -m -s /bin/bash dev \
-    && echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && usermod -aG docker dev
-
-# Set up SSH
+# Set up SSH — listen on 2222 since network_mode: host shares the host's port space
 RUN mkdir /var/run/sshd \
+    && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
     && sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
     && echo "AllowUsers dev" >> /etc/ssh/sshd_config
 
 # Ensure dev user's .ssh directory exists with correct permissions
-RUN mkdir -p /home/dev/.ssh && chmod 700 /home/dev/.ssh && chown dev:dev /home/dev/.ssh
+RUN mkdir -p /home/dev/.ssh && chmod 700 /home/dev/.ssh && chown dev: /home/dev/.ssh
 
 # Create workspace directory
-RUN mkdir -p /workspace && chown dev:dev /workspace
+RUN mkdir -p /workspace && chown dev: /workspace
 
 # Mark /workspace as a git safe directory so bind-mounted repos (owned by the
 # host UID) don't trigger git's "dubious ownership" error for the dev user.
 RUN git config --system --add safe.directory '*'
 
-# Entrypoint: set up dev user environment on first boot
-# - Copy .bashrc if missing (named volume may be empty)
-# - Remove /.dockerenv so ff CLI thinks it's on the host and uses docker compose run/exec
-# - Symlink ~/work and ~/projects to host-path mounts so getcwd(2) resolves
-#   to the host path and docker-compose bind-mount paths work on the host daemon
-RUN echo '#!/bin/bash\n\
-if [ ! -f /home/dev/.bashrc ]; then\n\
-  cp /etc/skel/.bashrc /home/dev/.bashrc\n\
-  chown dev:dev /home/dev/.bashrc\n\
-fi\n\
-rm -f /.dockerenv\n\
-if [ -n "$HOST_HOME" ] && [ "$HOST_HOME" != "/home/dev" ]; then\n\
-  for dir in work projects; do\n\
-    target="$HOST_HOME/$dir"\n\
-    link="/home/dev/$dir"\n\
-    if [ -d "$target" ]; then\n\
-      [ -d "$link" ] && [ ! -L "$link" ] && rmdir "$link" 2>/dev/null || true\n\
-      [ ! -e "$link" ] && ln -s "$target" "$link" && chown -h dev:dev "$link"\n\
-    fi\n\
-  done\n\
-fi\n\
-exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-EXPOSE 22 8888 8889 8890
+EXPOSE 2222 8888 8889 8890
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D"]
