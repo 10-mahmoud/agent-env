@@ -67,5 +67,11 @@ if [ "$(id -u dev 2>/dev/null)" = "0" ] && [ -f /home/dev/.bashrc ]; then
   fi
 fi
 
+# pre-commit: install git hook for finfam if config exists but hook is missing
+FINFAM_DIR="${HOST_HOME:-/home/dev}/work/finfam"
+if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ] && [ ! -f "$FINFAM_DIR/.git/hooks/pre-commit" ]; then
+  su -c "cd $FINFAM_DIR && pre-commit install" dev 2>/dev/null || true
+fi
+
 touch /tmp/.entrypoint-done
 exec "$@"

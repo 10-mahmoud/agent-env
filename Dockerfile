@@ -35,7 +35,6 @@ RUN add-apt-repository ppa:deadsnakes/ppa \
     && rm -rf /var/lib/apt/lists/* \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && update-alternatives --set python3 /usr/bin/python3.11
-
 # Docker CLI + compose plugin (no daemon — we use host's via socket)
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
@@ -47,8 +46,8 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
-# Node.js 22 LTS via nodesource
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+# Node.js 20 LTS via nodesource (finfam requires Node 20)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
@@ -58,6 +57,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 libatspi2.0-0t64 libxcomposite1 libxdamage1 libxfixes3 \
     libxrandr2 libgbm1 libcairo2 libpango-1.0-0 libasound2t64 \
     && rm -rf /var/lib/apt/lists/*
+
+# Pre-install Puppeteer's Chrome so it's baked into the image.
+# Cache is placed under /opt/puppeteer-cache and PUPPETEER_CACHE_DIR is set
+# globally so all users (root, dev) find it without a per-user download.
+ENV PUPPETEER_CACHE_DIR=/opt/puppeteer-cache
+RUN npx puppeteer browsers install chrome
 
 # Language servers (for Claude Code / omp LSP integration)
 RUN npm install -g \
@@ -76,6 +81,9 @@ RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
     && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
     && poetry self add poetry-plugin-shell
+
+# pre-commit (installed globally for the dev container)
+RUN python3 -m pip install --break-system-packages pre-commit
 
 # Claude Code (native installer — auto-updates, no Node.js runtime needed)
 RUN curl -fsSL https://claude.ai/install.sh | bash \

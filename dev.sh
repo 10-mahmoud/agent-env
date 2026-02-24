@@ -115,4 +115,4 @@ else
 fi
 
 $DAEMON && exit 0
-exec docker compose exec -u dev -e USER=dev -w /home/dev/work/finfam agent-env "${ARGS[@]}"
+exec docker compose exec -u dev -e HOME=/home/dev -e USER=dev -w /home/dev/work/finfam agent-env "${ARGS[@]}"
