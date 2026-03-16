@@ -17,10 +17,10 @@ fi
 # ff CLI: pretend we're on the host so it uses docker compose run/exec
 rm -f /.dockerenv
 
-# Symlink ~/work and ~/projects to their host-path mounts so getcwd(2)
+# Symlink ~/work, ~/projects, and ~/hatnote to their host-path mounts so getcwd(2)
 # resolves to the host path and docker-compose bind-mount paths work
 if [ -n "$HOST_HOME" ] && [ "$HOST_HOME" != "/home/dev" ]; then
-  for dir in work projects; do
+  for dir in work projects hatnote; do
     target="$HOST_HOME/$dir"
     link="/home/dev/$dir"
     if [ -d "$target" ]; then

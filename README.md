@@ -65,8 +65,9 @@ Builds the container image. Auto-detects:
 Starts the container (if not running) and execs into it.
 
 ```bash
-./dev.sh           # bash shell in /workspace/finfam
-./dev.sh npm test  # run a command directly
+./dev.sh                # bash shell in /workspace/finfam
+./dev.sh npm test       # run a command directly
+./dev.sh --personal     # mount personal SSH key (for pushing to personal repos)
 ```
 
 ## What's inside
