@@ -10,11 +10,13 @@ set -euo pipefail
 #   ./build.sh --no-rebuild-pi-natives # force skip pi_natives rebuild
 #   ./build.sh --omp-version 12.13.0   # pin omp to a specific version
 #   ./build.sh --omp-version latest    # force reinstall latest omp
+#   ./build.sh --claude-version latest # force reinstall latest Claude Code
 #
 # Any extra flags are forwarded to `docker compose build`.
 
 REBUILD_PI_NATIVES=""
 OMP_VERSION=""
+CLAUDE_VERSION=""
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -22,6 +24,7 @@ while [[ $# -gt 0 ]]; do
         --rebuild-pi-natives)    REBUILD_PI_NATIVES=true; shift ;;
         --no-rebuild-pi-natives) REBUILD_PI_NATIVES=false; shift ;;
         --omp-version)           OMP_VERSION="$2"; shift 2 ;;
+        --claude-version)        CLAUDE_VERSION="$2"; shift 2 ;;
         *)                       EXTRA_ARGS+=("$1"); shift ;;
     esac
 done
@@ -62,6 +65,17 @@ else
     echo "==> OMP version: pinning to $OMP_VERSION"
 fi
 
+# --- Claude version: resolve "latest" to a timestamp for cache busting ---
+if [[ -z "$CLAUDE_VERSION" ]]; then
+    echo "==> Claude Code: using cached layer (pass --claude-version latest to update)"
+elif [[ "$CLAUDE_VERSION" == "latest" ]]; then
+    CLAUDE_VERSION="latest-$(date +%s)"
+    echo "==> Claude Code: cache-busting to force fresh install"
+else
+    echo "==> Claude Code: pinning to $CLAUDE_VERSION"
+fi
+
 export REBUILD_PI_NATIVES HOST_UID HOST_GID
 [[ -n "$OMP_VERSION" ]] && export OMP_VERSION
+[[ -n "$CLAUDE_VERSION" ]] && export CLAUDE_VERSION
 exec docker compose build "${EXTRA_ARGS[@]}"

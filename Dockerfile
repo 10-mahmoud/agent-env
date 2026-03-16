@@ -86,6 +86,9 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 -
 RUN python3 -m pip install --break-system-packages pre-commit
 
 # Claude Code (native installer — auto-updates, no Node.js runtime needed)
+# Pass --build-arg CLAUDE_VERSION=<version> (or any unique value) to bust the
+# Docker layer cache and force a fresh install.
+ARG CLAUDE_VERSION=latest
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && ln -sf /root/.local/bin/claude /usr/local/bin/claude
 

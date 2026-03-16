@@ -7,6 +7,7 @@ services:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
         OMP_VERSION: ${OMP_VERSION:-latest}
+        CLAUDE_VERSION: ${CLAUDE_VERSION:-latest}
     container_name: agent-env
     restart: unless-stopped
     network_mode: host
