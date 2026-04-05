@@ -155,6 +155,17 @@ elif docker compose ps --status running --format '{{.Name}}' 2>/dev/null | grep 
         echo "  (Any state not on a persistent volume will be lost.)"
         echo ""
     fi
+    # Warn if SSH agent socket changed since container was started
+    if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        MOUNTED_SOCK=$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/tmp/ssh-agent.sock"}}{{.Source}}{{end}}{{end}}' agent-env 2>/dev/null)
+        if [[ -n "$MOUNTED_SOCK" && "$MOUNTED_SOCK" != "$SSH_AUTH_SOCK" ]]; then
+            echo "NOTE: SSH agent socket changed since container was started."
+            echo "  Mounted: $MOUNTED_SOCK"
+            echo "  Current: $SSH_AUTH_SOCK"
+            echo "  Run './dev.sh --recreate' if agent-based SSH auth fails."
+            echo ""
+        fi
+    fi
 else
     echo "==> Starting agent-env..."
     docker compose up -d

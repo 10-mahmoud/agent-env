@@ -69,10 +69,12 @@ if [ "$(id -u dev 2>/dev/null)" = "0" ] && [ -f /home/dev/.bashrc ]; then
   fi
 fi
 
-# pre-commit: install git hook for finfam if config exists but hook is missing
+# pre-commit: install git hooks for finfam if config exists but any hook is missing
 FINFAM_DIR="${HOST_HOME:-/home/dev}/work/finfam"
-if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ] && [ ! -f "$FINFAM_DIR/.git/hooks/pre-commit" ]; then
-  su -c "cd $FINFAM_DIR && pre-commit install" dev 2>/dev/null || true
+if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ]; then
+  if [ ! -f "$FINFAM_DIR/.git/hooks/pre-commit" ] || [ ! -f "$FINFAM_DIR/.git/hooks/pre-push" ] || [ ! -f "$FINFAM_DIR/.git/hooks/post-rewrite" ]; then
+    su -c "cd $FINFAM_DIR && pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type post-rewrite" dev 2>/dev/null || true
+  fi
 fi
 
 # Donut Browser MCP bridge (container side)
