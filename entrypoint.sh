@@ -54,6 +54,8 @@ fi
         sub(/gitdir:~\//, "gitdir:" hh "/")
         print
         getline
+        # Make relative include paths absolute (they resolve from /etc/ in system gitconfig)
+        sub(/path = \./, "path = /home/dev/.")
         print
       }
     ' /home/dev/.gitconfig
@@ -72,6 +74,17 @@ FINFAM_DIR="${HOST_HOME:-/home/dev}/work/finfam"
 if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ] && [ ! -f "$FINFAM_DIR/.git/hooks/pre-commit" ]; then
   su -c "cd $FINFAM_DIR && pre-commit install" dev 2>/dev/null || true
 fi
+
+# Donut Browser MCP bridge (container side)
+# socat on :51081 bridges to Unix socket; Python proxy on :51080 adds MCP
+# lifecycle compliance (initialize/initialized) that Donut doesn't implement.
+(
+  _sock="${HOST_HOME:-/home/dev}/work/.donut-mcp.sock"
+  for _ in $(seq 1 60); do [ -S "$_sock" ] && break; sleep 2; done
+  [ -S "$_sock" ] || exit 0
+  socat TCP-LISTEN:51081,bind=127.0.0.1,fork,reuseaddr UNIX-CONNECT:"$_sock" &
+  exec python3 /donut-mcp-proxy.py
+) &
 
 touch /tmp/.entrypoint-done
 exec "$@"

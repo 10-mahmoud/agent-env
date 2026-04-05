@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     software-properties-common \
     pkg-config \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 3.11 via deadsnakes PPA (ff requires ^3.11)
@@ -159,6 +160,7 @@ RUN mkdir -p /workspace && chown dev: /workspace
 RUN git config --system --add safe.directory '*'
 
 COPY entrypoint.sh /entrypoint.sh
+COPY donut-mcp-proxy.py /donut-mcp-proxy.py
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 2222 8888 8889 8890

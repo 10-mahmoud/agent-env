@@ -70,7 +70,10 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
     for f in "$HOME"/.gitconfig*; do
         [[ -f "$f" ]] && echo "      - ${f}:/home/dev/$(basename "$f"):ro"
     done
-    # Mount SSH private keys referenced by gitconfig SshCommand directives
+    # Mount SSH private keys referenced by gitconfig SshCommand directives.
+    # Keys are auto-discovered by grepping all ~/.gitconfig* files for '-i <path>'.
+    # Both identities (personal + work) must have explicit sshCommand directives
+    # so their keys are mounted here. See ~/.gitconfig for the identity map.
     grep -rh -- '-i ' "$HOME"/.gitconfig* 2>/dev/null \
         | sed -n 's/.*-i \([^ "]*\).*/\1/p' \
         | sort -u | while read -r key; do
@@ -83,6 +86,10 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
     [[ -d "$HOME/work" ]]     && echo "      - ${HOME}/work:${HOME}/work"
     [[ -d "$HOME/projects" ]] && echo "      - ${HOME}/projects:${HOME}/projects"
     [[ -d "$HOME/hatnote" ]]   && echo "      - ${HOME}/hatnote:${HOME}/hatnote"
+    # Persist ~/.omp (session history, agent DB, logs) on the host so it
+    # survives container recreation and is visible to agentsview.
+    mkdir -p "$HOME/.omp"
+    echo "      - ${HOME}/.omp:/home/dev/.omp"
     if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
         echo "      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock:ro"
         echo "    environment:"
@@ -152,6 +159,17 @@ else
     echo "==> Starting agent-env..."
     docker compose up -d
     _wait_ready
+fi
+
+# Donut Browser MCP bridge (host side)
+# Creates Unix socket in shared mount, forwards connections to Donut's localhost port
+_donut_sock="$HOME/work/.donut-mcp.sock"
+if command -v socat >/dev/null 2>&1; then
+  if ! pgrep -f "socat.*donut-mcp.sock" >/dev/null 2>&1; then
+    rm -f "$_donut_sock"
+    nohup socat UNIX-LISTEN:"$_donut_sock",fork,unlink-early TCP:127.0.0.1:51080 >/dev/null 2>&1 &
+    disown
+  fi
 fi
 
 $DAEMON && exit 0
