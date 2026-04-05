@@ -1,3 +1,4 @@
+nohup.out
 .env
 docker-compose.override.yml
 .ssh-config-personal
