@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Rootless Docker UID fix — detect and correct at runtime.
+# In rootless Docker, UID 0 inside the container maps to the host user.
+# If the image was built with HOST_UID != 0, dev has the wrong UID and
+# bind-mounted files will have mangled ownership on both sides.
+# The uid_map's first line tells us: if UID 0 maps to a non-zero host UID,
+# we're in rootless mode and dev must be UID 0.
+HOST_MAPPED_UID=$(awk 'NR==1{print $2}' /proc/self/uid_map 2>/dev/null)
+if [ "${HOST_MAPPED_UID:-0}" != "0" ] && [ "$(id -u dev 2>/dev/null)" != "0" ]; then
+  echo "==> Rootless Docker detected (UID 0 → host UID $HOST_MAPPED_UID), fixing dev user..."
+  usermod -o -u 0 -g 0 dev 2>/dev/null || true
+  # Fix ownership on the named volume to match the new UID
+  chown -R dev: /home/dev 2>/dev/null || true
+fi
+
 # Copy default .bashrc if missing (named volume may be empty on first boot)
 if [ ! -f /home/dev/.bashrc ]; then
   cp /etc/skel/.bashrc /home/dev/.bashrc
@@ -40,6 +54,20 @@ if [ -S /var/run/docker.sock ]; then
     usermod -aG "$SOCK_GID" dev
   fi
 fi
+
+# SSH known_hosts: the host file is mounted read-only, but SSH needs to write
+# new host keys.  Copy to a writable location and configure SSH to use it.
+if [ -f /home/dev/.ssh/known_hosts ] && [ ! -w /home/dev/.ssh/known_hosts ]; then
+  cp /home/dev/.ssh/known_hosts /home/dev/.ssh/known_hosts.local 2>/dev/null || true
+  chown dev: /home/dev/.ssh/known_hosts.local 2>/dev/null || true
+fi
+# Always write the SSH config — it uses the writable copy for new entries
+# and falls back to the mounted original as a read-only reference.
+cat > /etc/ssh/ssh_config.d/agent-env.conf <<'SSHEOF'
+Host *
+    UserKnownHostsFile /home/dev/.ssh/known_hosts.local /home/dev/.ssh/known_hosts
+    StrictHostKeyChecking accept-new
+SSHEOF
 
 # Git config: the host gitconfig has includeIf rules using gitdir:~/work/
 # which resolves to /home/dev/work/ inside the container. But the actual
