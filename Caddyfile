@@ -1,0 +1,43 @@
+# HTTPS reverse proxy for glob dev services via Tailscale certs.
+# Caddy auto-provisions TLS certs for *.ts.net domains from the local Tailscale daemon.
+#
+# Usage (on glob host):
+#   sudo caddy start --config /home/mahmoud/work/agent-env/Caddyfile
+#
+# Prerequisites:
+#   - Tailscale running with HTTPS certs enabled (tailnet admin console)
+#   - TS_PERMIT_CERT_UID=caddy in /etc/default/tailscaled (if running as caddy user)
+#   - Or run Caddy as root
+#
+# Port convention: HTTPS port = HTTP port + 300
+
+# Disable HTTP->HTTPS redirect listeners (port 80 is used by other services,
+# and redirects don't make sense with non-standard HTTPS ports anyway).
+{
+	auto_https disable_redirects
+}
+
+# Frontend (SvelteKit/Vite dev server)
+https://glob.boa-cobra.ts.net:5473 {
+	reverse_proxy localhost:5173
+}
+
+# API (FastAPI/uvicorn)
+https://glob.boa-cobra.ts.net:8382 {
+	reverse_proxy localhost:8082
+}
+
+# Docs (Astro)
+https://glob.boa-cobra.ts.net:4621 {
+	reverse_proxy localhost:4321
+}
+
+# MinIO S3 API
+https://glob.boa-cobra.ts.net:9320 {
+	reverse_proxy localhost:9020
+}
+
+# MinIO Console
+https://glob.boa-cobra.ts.net:9321 {
+	reverse_proxy localhost:9021
+}
