@@ -120,7 +120,7 @@ RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && ZIG_VERSION=0.13.0 \
+    && ZIG_VERSION=0.15.2 \
     && curl -sSL "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz" \
        | tar -xJ -C /usr/local \
     && ln -sf /usr/local/zig-linux-x86_64-${ZIG_VERSION}/zig /usr/local/bin/zig \

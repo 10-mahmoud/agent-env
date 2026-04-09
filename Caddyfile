@@ -23,8 +23,8 @@ https://glob.boa-cobra.ts.net:5473 {
 }
 
 # API (FastAPI/uvicorn)
-https://glob.boa-cobra.ts.net:8382 {
-	reverse_proxy localhost:8082
+https://glob.boa-cobra.ts.net:8381 {
+	reverse_proxy localhost:8081
 }
 
 # Docs (Astro)
