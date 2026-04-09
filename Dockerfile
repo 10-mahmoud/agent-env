@@ -118,6 +118,8 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     PATH="/usr/local/cargo/bin:${PATH}"
 RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
+    && echo ">>> Upgrading Bun (baseline builds have AVX2 crash regressions)..." \
+    && curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ZIG_VERSION=0.15.2 \
