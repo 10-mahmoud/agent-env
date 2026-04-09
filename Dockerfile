@@ -121,9 +121,9 @@ RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ZIG_VERSION=0.15.2 \
-    && curl -sSL "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz" \
+    && curl -sSL "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" \
        | tar -xJ -C /usr/local \
-    && ln -sf /usr/local/zig-linux-x86_64-${ZIG_VERSION}/zig /usr/local/bin/zig \
+    && ln -sf /usr/local/zig-x86_64-linux-${ZIG_VERSION}/zig /usr/local/bin/zig \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
        | sh -s -- -y --default-toolchain nightly --profile minimal \
     && rustc --version \
@@ -133,7 +133,7 @@ RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     && cp /tmp/oh-my-pi/target/release/libpi_natives.so \
        /root/.bun/install/global/node_modules/@oh-my-pi/pi-natives/native/pi_natives.linux-x64.node \
     && rm -rf /tmp/oh-my-pi /usr/local/cargo/registry /usr/local/cargo/git \
-       /usr/local/zig-linux-x86_64-* /usr/local/bin/zig \
+       /usr/local/zig-x86_64-linux-* /usr/local/bin/zig \
     && apt-get purge -y libclang-dev && apt-get autoremove -y \
     ; else \
     echo ">>> Skipping pi_natives rebuild (AVX2 available, prebuilt binary is fine)" \
