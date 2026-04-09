@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y \
 # bootstrap its venv.  System 3.12 works fine and Poetry manages project
 # Python separately.
 RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
+    || { cat /poetry-installer-error-*.log; exit 1; } \
     && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
     && poetry self add poetry-plugin-shell
 
