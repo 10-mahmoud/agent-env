@@ -1,6 +1,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/home/dev/.local/bin:${PATH}"
 
 # System packages
 RUN apt-get update && apt-get install -y \
