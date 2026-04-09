@@ -28,6 +28,18 @@ RUN apt-get update && apt-get install -y \
     socat \
     && rm -rf /var/lib/apt/lists/*
 
+# Poetry 2.1.2 + shell plugin (for ff CLI)
+# Installed before switching system Python to 3.11 — the deadsnakes 3.11 on
+# Ubuntu 24.04 has a broken ensurepip, which the Poetry installer needs to
+# bootstrap its venv.  System 3.12 works fine and Poetry manages project
+# Python separately.
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
+    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
+    && poetry self add poetry-plugin-shell
+
+# pre-commit (installed globally for the dev container)
+RUN python3 -m pip install --break-system-packages pre-commit
+
 # Python 3.11 via deadsnakes PPA (ff requires ^3.11)
 RUN add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update && apt-get install -y \
@@ -79,13 +91,6 @@ RUN npm install -g \
 # Bun (install to /usr/local so it's available to all users)
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
 
-# Poetry 2.1.2 + shell plugin (for ff CLI)
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 - \
-    && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
-    && poetry self add poetry-plugin-shell
-
-# pre-commit (installed globally for the dev container)
-RUN python3 -m pip install --break-system-packages pre-commit
 
 # Claude Code (native installer — auto-updates, no Node.js runtime needed)
 # Pass --build-arg CLAUDE_VERSION=<version> (or any unique value) to bust the
