@@ -118,8 +118,8 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     PATH="/usr/local/cargo/bin:${PATH}"
 RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
     echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
-    && echo ">>> Pinning Bun to 1.3.10 (1.3.11 baseline crashes with SIGILL on no-AVX2 CPUs)..." \
-    && curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash -s "bun-v1.3.10" \
+    && echo ">>> Pinning omp to 13.16.0 (13.16.1+ triggers Bun baseline AVX2 SIGILL on @ file refs)..." \
+    && bun install -g @oh-my-pi/pi-coding-agent@13.16.0 \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ZIG_VERSION=0.15.2 \
