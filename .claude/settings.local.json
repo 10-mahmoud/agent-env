@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./dev.sh --recreate -d)",
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)"
+    ]
+  }
+}

@@ -26,6 +26,19 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     pkg-config \
     socat \
+    lsof \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI
+RUN (type -p wget >/dev/null || (apt-get update && apt-get install -y wget)) \
+    && mkdir -p -m 755 /etc/apt/keyrings \
+    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Poetry 2.1.2 + shell plugin (for ff CLI)
@@ -159,7 +172,7 @@ RUN if [ "$HOST_UID" = "0" ]; then \
     fi \
     && echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Set up SSH — listen on 2222 since network_mode: host shares the host's port space
+# Set up SSH on 2222 to avoid colliding with the host's sshd on 22
 RUN mkdir /var/run/sshd \
     && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
