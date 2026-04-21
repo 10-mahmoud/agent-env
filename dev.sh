@@ -90,6 +90,9 @@ _override="$SCRIPT_DIR/docker-compose.override.yml"
     # survives container recreation and is visible to agentsview.
     mkdir -p "$HOME/.omp"
     echo "      - ${HOME}/.omp:/home/dev/.omp"
+    # Persist Modal token so `modal setup` survives container recreation.
+    touch -a "$HOME/.modal.toml"
+    echo "      - ${HOME}/.modal.toml:/home/dev/.modal.toml"
     if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
         echo "      - ${SSH_AUTH_SOCK}:/tmp/ssh-agent.sock:ro"
         echo "    environment:"

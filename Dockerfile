@@ -50,6 +50,9 @@ RUN add-apt-repository ppa:deadsnakes/ppa \
     && rm -rf /var/lib/apt/lists/* \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && update-alternatives --set python3 /usr/bin/python3.11
+
+# Modal (GPU training/inference on modal.com)
+RUN python3 -m pip install --break-system-packages modal
 # Docker CLI + compose plugin (no daemon — we use host's via socket)
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
