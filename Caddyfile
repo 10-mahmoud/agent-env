@@ -41,3 +41,13 @@ https://glob.boa-cobra.ts.net:9320 {
 https://glob.boa-cobra.ts.net:9321 {
 	reverse_proxy localhost:9021
 }
+
+# GoodTurn Frontend (SvelteKit)
+https://glob.boa-cobra.ts.net:5483 {
+	reverse_proxy localhost:5183
+}
+
+# GoodTurn API (FastAPI/uvicorn)
+https://glob.boa-cobra.ts.net:8383 {
+	reverse_proxy localhost:8083
+}
