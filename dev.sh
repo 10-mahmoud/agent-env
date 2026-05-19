@@ -54,6 +54,25 @@ if [[ -z "$DOCKER_SOCK" || ! -S "$DOCKER_SOCK" ]]; then
     done
 fi
 
+# Warn if rootless Docker host-gateway isn't configured
+# (host.docker.internal won't reach host-published ports without this)
+_daemon_json="$HOME/.config/docker/daemon.json"
+if docker info --format '{{range .SecurityOptions}}{{.}}{{end}}' 2>/dev/null | grep -q rootless; then
+    if ! grep -q '"host-gateway-ip"' "$_daemon_json" 2>/dev/null; then
+        echo "NOTE: rootless Docker detected without host-gateway-ip config."
+        echo "  host.docker.internal will not reach host-published ports."
+        echo "  To fix, see: https://github.com/moby/moby/issues/47684"
+        echo "  Quick fix:"
+        echo "    mkdir -p ~/.config/docker"
+        echo '    echo '"'"'{"host-gateway-ip":"10.0.2.2"}'"'"' > ~/.config/docker/daemon.json'
+        echo "    mkdir -p ~/.config/systemd/user/docker.service.d"
+        echo '    printf '"'"'[Service]\nEnvironment="DOCKERD_ROOTLESS_ROOTLESSKIT_DISABLE_HOST_LOOPBACK=false"\n'"'"' \\'
+        echo '      > ~/.config/systemd/user/docker.service.d/rootless-host-access.conf'
+        echo "    systemctl --user daemon-reload && systemctl --user restart docker"
+        echo ""
+    fi
+fi
+
 # Generate docker-compose.override.yml with conditional mounts.
 # Host gitconfig files, ~/work, ~/projects, ~/hatnote, and docker socket are mounted here.
 _override="$SCRIPT_DIR/docker-compose.override.yml"

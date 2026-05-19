@@ -11,6 +11,8 @@ services:
     container_name: agent-env
     restart: unless-stopped
     hostname: slate
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "2222:2222"
       - "5000:5000"
@@ -31,6 +33,7 @@ services:
       # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PPROTECT_PASSPHRASE=${PPROTECT_PASSPHRASE}
       - HOST_HOME=${HOME}
+      - GOODTURN_URL=${GOODTURN_URL:-https://goodturn.ai}
     env_file:
       - .env
 

@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     socat \
     lsof \
+    rsync \
     iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
@@ -51,8 +52,6 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 -
     && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
     && poetry self add poetry-plugin-shell
 
-# pre-commit (installed globally for the dev container)
-RUN python3 -m pip install --break-system-packages pre-commit
 
 # Python 3.11 via deadsnakes PPA (ff requires ^3.11)
 RUN add-apt-repository ppa:deadsnakes/ppa \
@@ -63,6 +62,10 @@ RUN add-apt-repository ppa:deadsnakes/ppa \
     && rm -rf /var/lib/apt/lists/* \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && update-alternatives --set python3 /usr/bin/python3.11
+
+# pre-commit (installed after Python 3.11 swap so it lands in the active interpreter)
+RUN python3 -m pip install --break-system-packages pre-commit
+
 # Docker CLI + compose plugin (no daemon — we use host's via socket)
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
