@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./dev.sh --recreate -d)",
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(lsb_release -a)",
+      "Read(//usr/lib/**)",
+      "Bash(systemctl is-active *)",
+      "Bash(systemctl is-enabled *)"
+    ]
+  }
+}

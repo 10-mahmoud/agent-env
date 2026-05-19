@@ -26,6 +26,20 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     pkg-config \
     socat \
+    lsof \
+    rsync \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI
+RUN (type -p wget >/dev/null || (apt-get update && apt-get install -y wget)) \
+    && mkdir -p -m 755 /etc/apt/keyrings \
+    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Poetry 2.1.2 + shell plugin (for ff CLI)
@@ -38,8 +52,6 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.2 python3 -
     && ln -sf /root/.local/bin/poetry /usr/local/bin/poetry \
     && poetry self add poetry-plugin-shell
 
-# pre-commit (installed globally for the dev container)
-RUN python3 -m pip install --break-system-packages pre-commit
 
 # Python 3.11 via deadsnakes PPA (ff requires ^3.11)
 RUN add-apt-repository ppa:deadsnakes/ppa \
@@ -51,8 +63,9 @@ RUN add-apt-repository ppa:deadsnakes/ppa \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && update-alternatives --set python3 /usr/bin/python3.11
 
-# Modal (GPU training/inference on modal.com)
-RUN python3 -m pip install --break-system-packages modal
+# pre-commit, modal (installed after Python 3.11 swap so it lands in the active interpreter)
+RUN python3 -m pip install --break-system-packages pre-commit modal
+
 # Docker CLI + compose plugin (no daemon — we use host's via socket)
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
@@ -162,7 +175,7 @@ RUN if [ "$HOST_UID" = "0" ]; then \
     fi \
     && echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Set up SSH — listen on 2222 since network_mode: host shares the host's port space
+# Set up SSH on 2222 to avoid colliding with the host's sshd on 22
 RUN mkdir /var/run/sshd \
     && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
