@@ -95,6 +95,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PUPPETEER_CACHE_DIR=/opt/puppeteer-cache
 RUN npx puppeteer browsers install chrome
 
+# JDK 21 (required by Capacitor 7 / Android Gradle Plugin)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-21-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+# Android SDK command-line tools + platform/build-tools for Capacitor
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && cd /tmp \
+    && wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip \
+    && unzip -q cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm cmdline-tools.zip \
+    && yes | sdkmanager --licenses > /dev/null 2>&1 || true \
+    && sdkmanager --install \
+    "platform-tools" \
+    "platforms;android-35" \
+    "build-tools;35.0.0"
+
 # Language servers (for Claude Code / omp LSP integration)
 RUN npm install -g \
     typescript \
