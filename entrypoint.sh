@@ -110,6 +110,12 @@ if [ -d /opt/android-sdk ] && [ "$(stat -c '%u' /opt/android-sdk)" != "$(id -u d
   chown -R dev: /opt/android-sdk
 fi
 mkdir -p /home/dev/.android /home/dev/.gradle
+# Gradle creates debug.keystore as the build user (root). Copy it to dev's
+# home so `keytool -list -keystore ~/.android/debug.keystore` works from the
+# dev user and `ff build apk` signs consistently.
+if [ -f /root/.android/debug.keystore ] && [ ! -f /home/dev/.android/debug.keystore ]; then
+  cp /root/.android/debug.keystore /home/dev/.android/debug.keystore
+fi
 chown -R dev: /home/dev/.android /home/dev/.gradle 2>/dev/null || true
 
 # Donut Browser MCP bridge (container side)
