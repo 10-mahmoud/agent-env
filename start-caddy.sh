@@ -11,7 +11,7 @@ set -euo pipefail
 # Prerequisites:
 #   - Caddy installed (brew install caddy / apt install caddy)
 #   - Tailscale running with HTTPS enabled
-#   - Linux: TS_PERMIT_CERT_UID=caddy in /etc/default/tailscaled
+#   - Linux only: TS_PERMIT_CERT_UID=caddy in /etc/default/tailscaled
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CADDYFILE="$SCRIPT_DIR/Caddyfile"
@@ -34,20 +34,21 @@ if ! command -v tailscale >/dev/null 2>&1; then
 fi
 
 # Get this machine's Tailscale FQDN
-TSHOST=$(tailscale status --self --json | jq -r '.Self.DNSName' | sed 's/\.$//')
-if [[ -z "$TSHOST" || "$TSHOST" == "null" ]]; then
+export TAILNET_HOST
+TAILNET_HOST=$(tailscale status --self --json | jq -r '.Self.DNSName' | sed 's/\.$//')
+if [[ -z "$TAILNET_HOST" || "$TAILNET_HOST" == "null" ]]; then
     echo "Error: could not determine Tailscale hostname. Is Tailscale running?"
     exit 1
 fi
 
-echo "Tailnet host: $TSHOST"
+echo "Tailnet host: $TAILNET_HOST"
 echo "Starting Caddy with HTTPS on ports 5473, 8381, 4621, 9320, 9321..."
 
 # Stop any existing Caddy instance
 sudo caddy stop 2>/dev/null || true
 
-# Substitute hostname and start
-sed "s/TAILNET_HOST/$TSHOST/g" "$CADDYFILE" | sudo caddy start --config -
+# Caddy reads {env.TAILNET_HOST} from the environment
+sudo TAILNET_HOST="$TAILNET_HOST" caddy start --config "$CADDYFILE"
 
 echo "Caddy running. Verify:"
-echo "  curl https://$TSHOST:8381/id/"
+echo "  curl https://$TAILNET_HOST:8381/id/"

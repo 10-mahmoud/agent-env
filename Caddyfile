@@ -14,16 +14,7 @@
 #   3. Allow Caddy to fetch certs (Linux only):
 #        echo 'TS_PERMIT_CERT_UID=caddy' | sudo tee -a /etc/default/tailscaled
 #        sudo systemctl restart tailscaled
-#   4. Start Caddy:
-#        sudo caddy start --config /path/to/this/Caddyfile
-#
-# The file uses the machine's Tailscale hostname. To find yours:
-#   tailscale status --self --json | jq -r '.Self.DNSName' | sed 's/\.$//'
-# e.g. "slate.boa-cobra.ts.net"
-#
-# Replace BOTH occurrences of the hostname below, or use the sed one-liner:
-#   TSHOST=$(tailscale status --self --json | jq -r '.Self.DNSName' | sed 's/\.$//') \
-#     && sed "s/TAILNET_HOST/$TSHOST/g" Caddyfile | sudo caddy start --config -
+#   4. Start:  ./start-caddy.sh
 #
 # Port convention: HTTPS port = HTTP port + 300
 
@@ -32,27 +23,27 @@
 }
 
 # Frontend (SvelteKit/Vite dev server)
-https://TAILNET_HOST:5473 {
+https://{env.TAILNET_HOST}:5473 {
 	reverse_proxy localhost:5173
 }
 
 # API (FastAPI/uvicorn)
-https://TAILNET_HOST:8381 {
+https://{env.TAILNET_HOST}:8381 {
 	reverse_proxy localhost:8081
 }
 
 # Docs (Astro)
-https://TAILNET_HOST:4621 {
+https://{env.TAILNET_HOST}:4621 {
 	reverse_proxy localhost:4321
 }
 
 # MinIO S3 API
-https://TAILNET_HOST:9320 {
+https://{env.TAILNET_HOST}:9320 {
 	reverse_proxy localhost:9020
 }
 
 # MinIO Console
-https://TAILNET_HOST:9321 {
+https://{env.TAILNET_HOST}:9321 {
 	reverse_proxy localhost:9021
 }
 
