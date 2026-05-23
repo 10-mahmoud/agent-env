@@ -105,6 +105,13 @@ if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ]; then
   fi
 fi
 
+# Android SDK: ensure dev user owns SDK dir (stamp files, auto-install)
+if [ -d /opt/android-sdk ] && [ "$(stat -c '%u' /opt/android-sdk)" != "$(id -u dev)" ]; then
+  chown -R dev: /opt/android-sdk
+fi
+mkdir -p /home/dev/.android /home/dev/.gradle
+chown -R dev: /home/dev/.android /home/dev/.gradle 2>/dev/null || true
+
 # Donut Browser MCP bridge (container side)
 # socat on :51081 bridges to Unix socket; Python proxy on :51080 adds MCP
 # lifecycle compliance (initialize/initialized) that Donut doesn't implement.
