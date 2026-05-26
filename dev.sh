@@ -54,6 +54,17 @@ if [[ -z "$DOCKER_SOCK" || ! -S "$DOCKER_SOCK" ]]; then
     done
 fi
 
+# Warn if tailscale is installed but `tailscale serve` has no routes —
+# HTTPS access to dev services (https://<tailnet-host>:5473, :8381, ...)
+# won't work until setup-tailscale-serve.sh has been run on this host.
+if command -v tailscale >/dev/null 2>&1 \
+   && tailscale serve status 2>/dev/null | grep -q '^No serve config'; then
+    echo "NOTE: tailscale serve has no routes configured."
+    echo "  Dev services won't be reachable via https://<tailnet-host>:<port>."
+    echo "  Run ./setup-tailscale-serve.sh to set them up (one-time)."
+    echo ""
+fi
+
 # Warn if rootless Docker host-gateway isn't configured
 # (host.docker.internal won't reach host-published ports without this)
 _daemon_json="$HOME/.config/docker/daemon.json"
