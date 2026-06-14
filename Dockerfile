@@ -133,9 +133,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH="/usr/local/cargo/bin:${PATH}"
 RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
-    echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
-    && echo ">>> Pinning omp to 13.16.0 (13.16.1+ triggers Bun baseline AVX2 SIGILL on @ file refs)..." \
-    && bun install -g @oh-my-pi/pi-coding-agent@13.16.0 \
+    echo ">>> Rebuilding pi_natives from source (no AVX2)..." \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ZIG_VERSION=0.15.2 \
