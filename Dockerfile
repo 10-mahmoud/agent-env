@@ -155,9 +155,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH="/usr/local/cargo/bin:${PATH}"
 RUN if [ "$REBUILD_PI_NATIVES" = "true" ]; then \
-    echo ">>> Installing Rust nightly and rebuilding pi_natives from source..." \
-    && echo ">>> Pinning omp to 13.16.0 (13.16.1+ triggers Bun baseline AVX2 SIGILL on @ file refs)..." \
-    && bun install -g @oh-my-pi/pi-coding-agent@13.16.0 \
+    echo ">>> Rebuilding pi_natives from source (no AVX2)..." \
     && apt-get update && apt-get install -y --no-install-recommends libclang-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ZIG_VERSION=0.15.2 \
@@ -214,11 +212,43 @@ RUN mkdir -p /workspace && chown dev: /workspace
 # host UID) don't trigger git's "dubious ownership" error for the dev user.
 RUN git config --system --add safe.directory '*'
 
+# ---- Android SDK (for Capacitor mobile builds) ----
+# JDK 21 (required by Capacitor 7's capacitor-android: sourceCompatibility 21)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-21-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+# Android SDK command-line tools
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+ENV ANDROID_AVD_HOME=/home/dev/.android/avd
+
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && cd /tmp \
+    && wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip \
+    && unzip -q cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm cmdline-tools.zip
+
+# Own SDK dir by dev so sdkmanager runs as dev create files with correct ownership
+RUN chown -R dev: ${ANDROID_HOME}
+
+# Accept licenses + install packages as dev (correct ownership, no mass chown)
+RUN sudo -u dev env ANDROID_HOME=/opt/android-sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+    bash -c 'yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses' > /dev/null 2>&1 \
+    && sudo -u dev env ANDROID_HOME=/opt/android-sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
+    /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --install \
+    "platform-tools" \
+    "platforms;android-35" \
+    "build-tools;35.0.0"
+
 COPY entrypoint.sh /entrypoint.sh
 COPY donut-mcp-proxy.py /donut-mcp-proxy.py
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 2222 8888 8889 8890
+EXPOSE 2222 5000 8888 8889 8890
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D"]

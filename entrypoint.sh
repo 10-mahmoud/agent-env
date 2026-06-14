@@ -105,6 +105,28 @@ if [ -f "$FINFAM_DIR/.pre-commit-config.yaml" ]; then
   fi
 fi
 
+# Android SDK: ensure dev user owns SDK dir (stamp files, auto-install)
+if [ -d /opt/android-sdk ] && [ "$(stat -c '%u' /opt/android-sdk)" != "$(id -u dev)" ]; then
+  chown -R dev: /opt/android-sdk
+fi
+mkdir -p /home/dev/.android /home/dev/.gradle
+# In rootless Docker, dev runs as UID 0 so Gradle's user.home is /root.
+# Always sync root's debug keystore to dev's home so `keytool -keystore
+# ~/.android/debug.keystore` (run as dev) matches what Gradle actually uses
+# to sign APKs. Without this, the SHA-1 fingerprints diverge and Google
+# Sign-In fails with UNREGISTERED_ON_API_CONSOLE.
+if [ -f /root/.android/debug.keystore ]; then
+  cp -f /root/.android/debug.keystore /home/dev/.android/debug.keystore
+fi
+chown -R dev: /home/dev/.android /home/dev/.gradle 2>/dev/null || true
+
+# ADB: use host's ADB server so the container can reach WiFi-connected devices.
+# The host runs `adb -a server` via systemd (see setup-adb-host.sh).
+# Only set if the host server is actually listening — otherwise adb uses a local server.
+if timeout 1 bash -c 'echo > /dev/tcp/host.docker.internal/5037' 2>/dev/null; then
+  export ADB_SERVER_SOCKET="tcp:host.docker.internal:5037"
+fi
+
 # Donut Browser MCP bridge (container side)
 # socat on :51081 bridges to Unix socket; Python proxy on :51080 adds MCP
 # lifecycle compliance (initialize/initialized) that Donut doesn't implement.

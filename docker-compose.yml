@@ -10,7 +10,7 @@ services:
         CLAUDE_VERSION: ${CLAUDE_VERSION:-latest}
     container_name: agent-env
     restart: unless-stopped
-    hostname: slate
+    hostname: ${AGENT_HOSTNAME:-agent-env}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
