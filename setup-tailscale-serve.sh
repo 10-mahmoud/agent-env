@@ -21,13 +21,14 @@ if ! command -v tailscale >/dev/null 2>&1; then
     exit 1
 fi
 
-# `tailscale serve` requires root, OR an operator user. Probe by trying the
-# reset (which we'd do anyway); if it's denied, grant operator once via sudo
-# so this and every future run / status check works without sudo.
-if ! tailscale serve reset >/dev/null 2>&1; then
+# `tailscale serve` requires root, OR an operator user. Probe with a read-only
+# status check; if it's denied, grant operator once via sudo so this and every
+# future run / status check works without sudo.
+# NOTE: we intentionally do NOT run `tailscale serve reset` — that would wipe
+# any existing serve/funnel routes not managed by this script (e.g. Overseerr).
+if ! tailscale serve status >/dev/null 2>&1; then
     echo "Granting $USER operator rights on tailscaled (one-time, requires sudo)..."
     sudo tailscale set --operator="$USER"
-    tailscale serve reset
 fi
 
 # HTTPS port -> upstream HTTP port on localhost

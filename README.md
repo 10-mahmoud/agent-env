@@ -86,3 +86,28 @@ Starts the container (if not running) and execs into it.
 The container runs an SSH server for remote access and mounts the host's Docker socket for Docker-in-Docker workflows. The finfam project is bind-mounted at `/workspace/finfam`. A named volume (`agent-env-home`) persists the dev user's home directory across container rebuilds.
 
 The entrypoint removes `/.dockerenv` so the ff CLI thinks it's running on a real host and correctly uses `docker compose run/exec` for its sub-containers.
+
+## Maintenance
+
+### Updating a remote machine
+
+```bash
+# 1. Pull both repos
+ssh <host> "cd ~/work/agent-env && git pull origin main"
+ssh <host> "cd ~/work/finfam && git pull origin mobile"
+
+# 2. Rebuild (only needed when Dockerfile changes or updating omp/claude)
+ssh <host> "cd ~/work/agent-env && ./build.sh --omp-version latest --claude-version latest"
+
+# 3. Recreate container
+ssh <host> "cd ~/work/agent-env && ./dev.sh --recreate -d"
+```
+
+### Known gotchas
+
+- **SSH agent socket staleness**: `docker-compose.override.yml` captures `$SSH_AUTH_SOCK` at `dev.sh` runtime. After reboot or SSH reconnect, the socket path changes and the container fails to start (exit 127). Fix: `./dev.sh --recreate -d`.
+- **Disk pressure on slate**: Docker build cache and unused images accumulate fast. Run `docker system prune -a -f && docker builder prune -a -f` periodically. Check with `docker system df`.
+- **Disk pressure on glob**: Root ZFS pool. Run `docker system prune -f` before rebuilds. The agent-env image is ~7 GB.
+- **Tailscale SSH re-auth (slate)**: Slate uses Tailscale SSH exclusively — sessions expire and require visiting a URL in a browser. No workaround.
+- **Non-AVX2 CPUs (glob)**: `build.sh` auto-detects and rebuilds pi_natives from source. If omp updates break `@` autocomplete on glob again, pin the version in `Dockerfile` line 136 area.
+- **OMP version resolution**: `build.sh --omp-version latest` requires `npm` on the host to resolve the version. If npm is not available, pass a concrete version like `--omp-version 15.12.4`.
